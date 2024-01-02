@@ -90,21 +90,49 @@ app.post("/:meetingId/finalDecision", (req, res) => {
 
 app.post("/:meetingId/login", (req,rees) => {
   const meetingId = req.params.meetingId;
-  // 1. Get id, pw from the request body
   const { user, password } = req.body;
-  // 2. Id, pw valid?
+  console.log(req.sessionID);
   if (user && password) {
+    if (req.session.authenticated) {
+      return resizeBy.status(201).send(req.session);
+    } else {
+      if (checkLogin(parseInt(meetingId), user, password)) {
+        req.session.authenticated = true;
+        req.session.user = {
+          name: user,
+          role: "host"
+        };
+        return res.status(201).send(req.session);
+        return res.status(403).send({ error: "Bad authentication"});
+      }
+    } else {
+      return res.status(403).send({ error: "Bad authentication"})
+    }
+    }
+
     if (checkLogin(parseInt(meetingId), user, password)) {
       req.session.authenticated = true;
       req.session.user = {
         name: user,
         role: "host"
-      }
+      };
+      return res.status(201).send(req.session);
+      return res.status(403).send({ error: "Bad authentication"});
     }
+  } else {
+    return res.status(403).send({ error: "Bad authentication"})
   }
   // 3. Id, pw check -> In the DB?
   // 4. IF true -> create session -> return cookie
   // 5. If false -> return error
+});
+
+app.get("/checkAuthed", (req, res) => {
+  if (req.session.authenticated == true) {
+    return res.status(200).send({status: "Logged in!.  Good..."});
+  } else {
+    return res.status(403).send({ status: "Not logged in.  Too bad..."});
+  }
 })
 
 app.listen(3000, () => {
